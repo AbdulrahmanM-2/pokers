@@ -6,7 +6,7 @@ import {
   User, Activity, Bluetooth, Moon, Sun, Volume2, Maximize, 
   Power, Shield, ShoppingBag, Spade, Music, FileText, Download, 
   Image as ImageIcon, Play, Pause, SkipForward, SkipBack, RefreshCw,
-  Calendar as CalendarIcon, Inbox, Archive
+  Calendar as CalendarIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
 
