@@ -1,2 +1,2 @@
 # pokers
-A smartphone Os
+Pokers phone firmware
