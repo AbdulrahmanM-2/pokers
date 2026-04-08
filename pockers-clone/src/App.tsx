@@ -9,6 +9,7 @@ import {
   Calendar as CalendarIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
+import bootLogo from './assets/boot-logo.png';
 
 // --- App Registry ---
 const APP_REGISTRY: Record<string, { name: string, icon: any, gradient: string, secure?: boolean, desc?: string }> = {
@@ -901,8 +902,8 @@ export default function App() {
         {/* Boot Sequence */}
         {isBooting && (
           <div className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center animate-in fade-out duration-1000 delay-1500 fill-mode-forwards">
-            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-aura-primary to-aura-secondary flex items-center justify-center shadow-[0_0_40px_rgba(139,92,246,0.5)] animate-pulse-glow">
-              <Shield size={40} color="white" strokeWidth={1.5} />
+            <div className="w-32 h-32 flex items-center justify-center animate-pulse-glow">
+              <img src={bootLogo} alt="Pokers Boot Logo" className="w-full h-full object-contain drop-shadow-[0_0_30px_rgba(139,92,246,0.6)]" />
             </div>
             <h1 className="text-white mt-6 text-2xl font-light tracking-[0.3em] uppercase">Pokers OS</h1>
             <div className="w-32 h-1 bg-white/10 rounded-full mt-8 overflow-hidden">
