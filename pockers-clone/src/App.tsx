@@ -11,6 +11,13 @@ import {
 import { format } from 'date-fns';
 import bootLogo from './assets/boot-logo.png';
 
+// --- Helpers ---
+const vibrate = (pattern: number | number[] = 50) => {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(pattern);
+  }
+};
+
 // --- App Registry ---
 const APP_REGISTRY: Record<string, { name: string, icon: any, gradient: string, secure?: boolean, desc?: string }> = {
   Comms: { name: 'Comms', icon: MessageSquare, gradient: 'from-blue-500 to-cyan-400', secure: true },
@@ -65,7 +72,7 @@ const StatusBar = ({ time, onRightClick, wifiOn, batteryPct }: { time: Date, onR
 const AppIcon = ({ id, onClick }: { id: string, onClick?: () => void }) => {
   const app = APP_REGISTRY[id];
   return (
-    <div className="flex flex-col items-center space-y-2 cursor-pointer group relative animate-in zoom-in duration-300" onClick={onClick}>
+    <div className="flex flex-col items-center space-y-2 cursor-pointer group relative animate-in zoom-in duration-300" onClick={() => { vibrate(30); onClick?.(); }}>
       <div className={`absolute top-0 w-[60px] h-[60px] rounded-[18px] bg-gradient-to-br ${app.gradient} blur-xl opacity-0 group-hover:opacity-70 transition-opacity duration-500`}></div>
       <div className={`relative w-[60px] h-[60px] rounded-[18px] bg-gradient-to-br ${app.gradient} p-[1px] group-active:scale-90 transition-all duration-300 shadow-[0_10px_20px_rgba(0,0,0,0.5)] group-hover:-translate-y-1`}>
         <div className="w-full h-full bg-aura-dark/80 backdrop-blur-xl rounded-[17px] flex justify-center items-center relative overflow-hidden">
@@ -84,7 +91,7 @@ const AppIcon = ({ id, onClick }: { id: string, onClick?: () => void }) => {
 };
 
 const DockIcon = ({ icon: Icon, gradient, onClick }: { icon: any, gradient: string, onClick?: () => void }) => (
-  <div className="relative group cursor-pointer" onClick={onClick}>
+  <div className="relative group cursor-pointer" onClick={() => { vibrate(30); onClick?.(); }}>
     <div className={`absolute inset-0 bg-gradient-to-br ${gradient} blur-lg opacity-40 group-hover:opacity-80 transition-opacity duration-300 rounded-[16px]`}></div>
     <div className={`relative w-[54px] h-[54px] rounded-[16px] bg-gradient-to-br ${gradient} p-[1px] group-active:scale-90 transition-all duration-300 shadow-lg group-hover:-translate-y-1`}>
       <div className="w-full h-full bg-aura-dark/60 backdrop-blur-md rounded-[15px] flex justify-center items-center relative overflow-hidden">
@@ -104,6 +111,7 @@ export default function App() {
   const [openedApp, setOpenedApp] = useState<string | null>(null);
   const [showControlCenter, setShowControlCenter] = useState(false);
   const [notification, setNotification] = useState<{title: string, msg: string, app: string} | null>(null);
+  const [nodeExpanded, setNodeExpanded] = useState(false);
   
   // Persistent OS State
   const [installedApps, setInstalledApps] = useState<string[]>(() => {
@@ -222,14 +230,21 @@ export default function App() {
   }, [openedApp]);
 
   const handleUnlock = () => {
+    vibrate([30, 50, 30]);
     setIsScanning(true);
     setTimeout(() => {
       setIsScanning(false);
       setIsLocked(false);
+      vibrate(50);
     }, 1200);
   };
 
   const handleHomeSwipe = () => {
+    vibrate(40);
+    if (nodeExpanded) {
+      setNodeExpanded(false);
+      return;
+    }
     if (showControlCenter) {
       setShowControlCenter(false);
       return;
@@ -867,12 +882,44 @@ export default function App() {
       <div className="absolute -right-[10px] top-[160px] w-[2px] h-[60px] bg-[#4a4a5a] rounded-r-md"></div>
 
       {/* Dynamic Aura Node (Punch-hole) */}
-      <div className={`absolute top-3 left-1/2 -translate-x-1/2 bg-black rounded-full z-50 shadow-[inset_0_0_4px_rgba(255,255,255,0.2)] flex items-center justify-center transition-all duration-500 ease-spring overflow-hidden
-        ${notification && !isLocked ? 'w-[220px] h-[36px] px-3 justify-between' : 
-          isPlaying ? 'w-[120px] h-[28px] px-3 justify-between' : 
-          'w-[14px] h-[14px]'}`}
+      <div 
+        className={`absolute top-3 left-1/2 -translate-x-1/2 bg-black z-50 shadow-[inset_0_0_4px_rgba(255,255,255,0.2)] flex items-center justify-center transition-all duration-500 ease-spring overflow-hidden cursor-pointer
+        ${nodeExpanded ? 'w-[340px] h-[140px] rounded-[36px] px-6 py-5 flex-col items-start justify-between' :
+          notification && !isLocked ? 'w-[220px] h-[36px] rounded-full px-3 justify-between' : 
+          isPlaying ? 'w-[120px] h-[28px] rounded-full px-3 justify-between' : 
+          'w-[14px] h-[14px] rounded-full'}`}
+        onClick={() => {
+          if (isPlaying || notification) {
+            setNodeExpanded(!nodeExpanded);
+            vibrate(20);
+          }
+        }}
       >
-        {notification && !isLocked ? (
+        {nodeExpanded ? (
+          <div className="w-full h-full flex flex-col justify-between animate-in fade-in duration-300">
+            <div className="flex justify-between items-center w-full">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-600 rounded-full animate-[spin_4s_linear_infinite] shadow-[0_0_15px_rgba(249,115,22,0.5)]"></div>
+                <div>
+                  <div className="text-white text-base font-medium tracking-wide">Neon Nights</div>
+                  <div className="text-orange-400 text-xs mt-0.5">Pokers Audio</div>
+                </div>
+              </div>
+              <div className="flex space-x-1.5 items-end h-5">
+                <div className="w-1.5 bg-orange-500 rounded-full animate-audio-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-1.5 bg-orange-500 rounded-full animate-audio-bounce" style={{ animationDelay: '0.3s' }}></div>
+                <div className="w-1.5 bg-orange-500 rounded-full animate-audio-bounce" style={{ animationDelay: '0.2s' }}></div>
+              </div>
+            </div>
+            <div className="flex justify-center items-center space-x-10 w-full mt-2">
+              <SkipBack size={24} className="text-white/70 cursor-pointer active:scale-90" onClick={(e) => { e.stopPropagation(); vibrate(20); }} />
+              <div className="cursor-pointer active:scale-90" onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); vibrate(20); }}>
+                {isPlaying ? <Pause size={32} className="text-white fill-current" /> : <Play size={32} className="text-white fill-current" />}
+              </div>
+              <SkipForward size={24} className="text-white/70 cursor-pointer active:scale-90" onClick={(e) => { e.stopPropagation(); vibrate(20); }} />
+            </div>
+          </div>
+        ) : notification && !isLocked ? (
           <>
             <div className="w-5 h-5 rounded-full bg-aura-primary flex items-center justify-center"><MessageSquare size={10} color="white" /></div>
             <span className="text-white text-[10px] font-medium truncate mx-2">{notification.title}</span>
@@ -1014,6 +1061,17 @@ export default function App() {
 
             {/* Dynamic App Grid */}
             <div className="grid grid-cols-4 gap-y-6 gap-x-4 content-start flex-1 overflow-y-auto hide-scrollbar pb-20">
+              {/* Weather Widget */}
+              <div className="col-span-2 row-span-2 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 backdrop-blur-xl rounded-[28px] border border-white/10 p-4 flex flex-col justify-between cursor-pointer active:scale-95 transition-transform shadow-lg" onClick={() => { vibrate(); setOpenedApp('Atmosphere'); }}>
+                <div className="flex justify-between items-start">
+                  <div className="text-white/90 text-sm font-medium tracking-wide">Neo Tokyo</div>
+                  <CloudLightning size={20} className="text-cyan-400 drop-shadow-[0_0_8px_#22d3ee]" />
+                </div>
+                <div>
+                  <div className="text-5xl font-light text-white tracking-tighter">72°</div>
+                  <div className="text-xs text-cyan-100/70 mt-1 font-medium tracking-wide">Electric Storm</div>
+                </div>
+              </div>
               {installedApps.map(appId => (
                 <AppIcon key={appId} id={appId} onClick={() => setOpenedApp(appId)} />
               ))}
