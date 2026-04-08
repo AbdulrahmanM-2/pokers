@@ -42,7 +42,7 @@ const WALLPAPERS = [
 
 // --- Components ---
 
-const StatusBar = ({ time, onRightClick }: { time: Date, onRightClick: () => void }) => (
+const StatusBar = ({ time, onRightClick, wifiOn, batteryPct }: { time: Date, onRightClick: () => void, wifiOn: boolean, batteryPct: number }) => (
   <div className="absolute top-0 w-full h-[40px] flex justify-between items-center px-5 text-xs font-medium z-50 text-white/90">
     <div className="flex items-center space-x-2 w-1/3">
       <span>{format(time, 'h:mm')}</span>
@@ -53,8 +53,9 @@ const StatusBar = ({ time, onRightClick }: { time: Date, onRightClick: () => voi
       className="flex items-center justify-end space-x-1.5 w-1/3 cursor-pointer active:opacity-50"
       onClick={onRightClick}
     >
-      <Signal size={14} />
-      <Wifi size={14} />
+      {wifiOn && <Signal size={14} />}
+      {wifiOn && <Wifi size={14} />}
+      <span className="text-[10px] ml-1">{batteryPct}%</span>
       <Battery size={16} className="text-aura-primary drop-shadow-[0_0_5px_#8b5cf6]" />
     </div>
   </div>
@@ -117,9 +118,19 @@ export default function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [musicProgress, setMusicProgress] = useState(0);
 
+  // Hardware State
+  const [wifiOn, setWifiOn] = useState(true);
+  const [btOn, setBtOn] = useState(true);
+  const [flashlightOn, setFlashlightOn] = useState(false);
+  const [batteryPct, setBatteryPct] = useState(100);
+  const [isScanning, setIsScanning] = useState(false);
+
   // Browser State
   const [browserInput, setBrowserInput] = useState('https://en.wikipedia.org/wiki/Main_Page');
   const [activeUrl, setActiveUrl] = useState('https://en.wikipedia.org/wiki/Main_Page');
+
+  // Phone State
+  const [dialerInput, setDialerInput] = useState('');
 
   // Calculator State
   const [calcDisplay, setCalcDisplay] = useState('0');
@@ -150,6 +161,11 @@ export default function App() {
   // Timers & Effects
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setBatteryPct(p => Math.max(1, p - 1)), 60000);
     return () => clearInterval(timer);
   }, []);
 
@@ -203,6 +219,14 @@ export default function App() {
       }
     }
   }, [openedApp]);
+
+  const handleUnlock = () => {
+    setIsScanning(true);
+    setTimeout(() => {
+      setIsScanning(false);
+      setIsLocked(false);
+    }, 1200);
+  };
 
   const handleHomeSwipe = () => {
     if (showControlCenter) {
@@ -775,6 +799,56 @@ export default function App() {
             </div>
           </div>
         );
+      case 'Phone':
+        return (
+          <div className="w-full h-full bg-aura-dark text-white pt-14 flex flex-col items-center">
+            <div className="flex-1 flex flex-col items-center justify-center w-full px-8">
+              <div className="text-4xl font-light tracking-widest h-12 mb-8 text-emerald-400">{dialerInput || ' '}</div>
+              <div className="grid grid-cols-3 gap-6 w-full max-w-[260px]">
+                {['1','2','3','4','5','6','7','8','9','*','0','#'].map(num => (
+                  <div key={num} onClick={() => setDialerInput(prev => prev.length < 15 ? prev + num : prev)} className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-light cursor-pointer active:bg-white/20 active:scale-90 transition-all">
+                    {num}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-10 flex space-x-6">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center cursor-pointer active:scale-90 transition-all shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+                  <Phone size={28} className="text-emerald-400 fill-current" />
+                </div>
+                <div onClick={() => setDialerInput(prev => prev.slice(0, -1))} className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center cursor-pointer active:scale-90 transition-all">
+                  <ChevronRight size={28} className="text-rose-400 rotate-180" />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'Nav':
+        return (
+          <div className="w-full h-full bg-[#021015] text-emerald-400 pt-14 flex flex-col relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-900/20 to-transparent"></div>
+            <div className="flex items-center justify-between px-6 mb-6 z-10">
+              <h1 className="text-2xl font-light tracking-widest uppercase text-emerald-400">Nav</h1>
+              <Map size={20} className="text-emerald-400 drop-shadow-[0_0_8px_#34d399]" />
+            </div>
+            <div className="flex-1 relative flex items-center justify-center">
+              <div className="absolute w-64 h-64 rounded-full border border-emerald-500/30"></div>
+              <div className="absolute w-48 h-48 rounded-full border border-emerald-500/30"></div>
+              <div className="absolute w-32 h-32 rounded-full border border-emerald-500/30"></div>
+              <div className="absolute w-16 h-16 rounded-full border border-emerald-500/30"></div>
+              <div className="absolute w-full h-[1px] bg-emerald-500/20"></div>
+              <div className="absolute h-full w-[1px] bg-emerald-500/20"></div>
+              <div className="absolute w-32 h-32 origin-bottom-right right-1/2 bottom-1/2 bg-gradient-to-tr from-emerald-500/40 to-transparent animate-[spin_4s_linear_infinite]"></div>
+              <div className="absolute w-2 h-2 bg-emerald-400 rounded-full top-1/3 left-1/3 shadow-[0_0_10px_#34d399] animate-pulse"></div>
+              <div className="absolute w-2 h-2 bg-emerald-400 rounded-full bottom-1/3 right-1/4 shadow-[0_0_10px_#34d399] animate-pulse delay-75"></div>
+              <div className="absolute w-3 h-3 bg-white rounded-full shadow-[0_0_15px_#fff]"></div>
+            </div>
+            <div className="h-32 bg-black/60 backdrop-blur-md border-t border-emerald-500/20 z-10 p-6">
+              <div className="text-xs font-mono text-emerald-500/70 mb-1">CURRENT LOCATION</div>
+              <div className="text-lg tracking-widest">SECURE SECTOR 7G</div>
+              <div className="text-xs font-mono text-emerald-500/50 mt-2">LAT: 44.2019 | LNG: -12.4921</div>
+            </div>
+          </div>
+        );
       default:
         return (
           <div className="w-full h-full bg-aura-dark flex items-center justify-center">
@@ -837,32 +911,35 @@ export default function App() {
           </div>
         )}
 
-        <StatusBar time={time} onRightClick={() => setShowControlCenter(!showControlCenter)} />
+        {/* Flashlight Overlay */}
+        {flashlightOn && <div className="absolute inset-0 z-[60] pointer-events-none bg-white/20 mix-blend-overlay shadow-[inset_0_0_150px_rgba(255,255,255,0.8)]"></div>}
+
+        <StatusBar time={time} onRightClick={() => setShowControlCenter(!showControlCenter)} wifiOn={wifiOn} batteryPct={batteryPct} />
 
         {/* Control Center Overlay */}
         {showControlCenter && (
           <div className="absolute inset-0 z-40 bg-black/60 backdrop-blur-2xl animate-in slide-in-from-top duration-300 pt-16 px-6">
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="bg-white/10 rounded-3xl p-4 flex flex-col space-y-4 border border-white/10">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-aura-secondary flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.5)]">
+                <div className="flex items-center space-x-3 cursor-pointer active:scale-95 transition-transform" onClick={() => setWifiOn(!wifiOn)}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${wifiOn ? 'bg-aura-secondary shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'bg-white/20'}`}>
                     <Wifi size={18} color="white" />
                   </div>
-                  <span className="text-white text-sm font-medium">Pokers_Net</span>
+                  <span className="text-white text-sm font-medium">{wifiOn ? 'Pokers_Net' : 'Off'}</span>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-aura-primary flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.5)]">
+                <div className="flex items-center space-x-3 cursor-pointer active:scale-95 transition-transform" onClick={() => setBtOn(!btOn)}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${btOn ? 'bg-aura-primary shadow-[0_0_15px_rgba(139,92,246,0.5)]' : 'bg-white/20'}`}>
                     <Bluetooth size={18} color="white" />
                   </div>
-                  <span className="text-white text-sm font-medium">On</span>
+                  <span className="text-white text-sm font-medium">{btOn ? 'On' : 'Off'}</span>
                 </div>
               </div>
               <div className="grid grid-rows-2 gap-4">
-                <div className="bg-white/10 rounded-3xl flex items-center justify-center border border-white/10">
+                <div className="bg-white/10 rounded-3xl flex items-center justify-center border border-white/10 cursor-pointer active:scale-95 transition-transform">
                   <Moon size={24} className="text-aura-primary" />
                 </div>
-                <div className="bg-white/10 rounded-3xl flex items-center justify-center border border-white/10">
-                  <Power size={24} className="text-aura-accent" />
+                <div className={`rounded-3xl flex items-center justify-center border border-white/10 cursor-pointer active:scale-95 transition-all ${flashlightOn ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.8)]' : 'bg-white/10 text-aura-accent'}`} onClick={() => setFlashlightOn(!flashlightOn)}>
+                  <Power size={24} />
                 </div>
               </div>
             </div>
@@ -907,10 +984,10 @@ export default function App() {
                   <Camera size={20} className="text-white" />
                 </div>
               </div>
-              <div className="relative w-20 h-20 rounded-full border-2 border-aura-primary/30 flex items-center justify-center mb-4 cursor-pointer group overflow-hidden shadow-[0_0_20px_rgba(139,92,246,0.2)]" onClick={handleHomeSwipe}>
-                <div className="absolute inset-0 bg-aura-primary/10 group-hover:bg-aura-primary/30 transition-colors duration-300"></div>
-                <div className="absolute top-0 left-0 w-full h-[2px] bg-aura-secondary shadow-[0_0_15px_#06b6d4] animate-scan"></div>
-                <Fingerprint size={36} className="text-aura-primary group-hover:text-white transition-colors duration-300 drop-shadow-[0_0_10px_rgba(139,92,246,0.8)]" />
+              <div className={`relative w-20 h-20 rounded-full border-2 flex items-center justify-center mb-4 cursor-pointer group overflow-hidden transition-all duration-500 ${isScanning ? 'border-emerald-400 shadow-[0_0_30px_rgba(52,211,153,0.6)] scale-110' : 'border-aura-primary/30 shadow-[0_0_20px_rgba(139,92,246,0.2)]'}`} onClick={handleUnlock}>
+                <div className={`absolute inset-0 transition-colors duration-300 ${isScanning ? 'bg-emerald-400/20' : 'bg-aura-primary/10 group-hover:bg-aura-primary/30'}`}></div>
+                <div className={`absolute left-0 w-full h-[2px] shadow-[0_0_15px_#06b6d4] ${isScanning ? 'bg-emerald-400 shadow-[0_0_20px_#34d399] animate-[scan_0.5s_ease-in-out_infinite]' : 'bg-aura-secondary top-0 animate-scan'}`}></div>
+                <Fingerprint size={36} className={`transition-colors duration-300 drop-shadow-[0_0_10px_rgba(139,92,246,0.8)] ${isScanning ? 'text-emerald-400' : 'text-aura-primary group-hover:text-white'}`} />
               </div>
               <div className="flex items-center space-x-2 text-emerald-400 text-[10px] tracking-widest uppercase font-mono bg-emerald-400/10 px-3 py-1.5 rounded-full border border-emerald-400/20">
                 <Shield size={12} />
