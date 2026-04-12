@@ -141,6 +141,34 @@ export default function App() {
   // Phone State
   const [dialerInput, setDialerInput] = useState('');
 
+  // Mail & Gallery State
+  const [activeEmail, setActiveEmail] = useState<number | null>(null);
+  const [activePhoto, setActivePhoto] = useState<number | null>(null);
+
+  // Comms State
+  const [activeChat, setActiveChat] = useState<number | null>(null);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState<Record<number, any[]>>({
+    0: [{ sender: 'Cipher', msg: 'Data transfer complete.', time: '09:41', isMe: false }],
+    1: [{ sender: 'Nexus Team', msg: 'Meeting at coordinates 44.2.', time: 'Yesterday', isMe: false }],
+    2: [{ sender: 'Echo', msg: 'System update required.', time: 'Cycle 4', isMe: false }]
+  });
+
+  // Time State
+  const [alarms, setAlarms] = useState([
+    { id: 1, time: '07:00', label: 'Wake Up', active: true },
+    { id: 2, time: '08:30', label: 'Daily Standup', active: false }
+  ]);
+
+  // Calendar State
+  const [selectedDate, setSelectedDate] = useState(new Date().getDate());
+  const [calendarEvents, setCalendarEvents] = useState<Record<number, any[]>>({
+    [new Date().getDate()]: [
+      { title: 'Sync with Nexus Team', time: '10:00 AM - 11:30 AM', color: 'bg-purple-500', shadow: 'shadow-[0_0_8px_rgba(168,85,247,0.8)]' },
+      { title: 'System Maintenance', time: '2:00 PM - 4:00 PM', color: 'bg-cyan-500', shadow: 'shadow-[0_0_8px_rgba(6,182,212,0.8)]' }
+    ]
+  });
+
   // Calculator State
   const [calcDisplay, setCalcDisplay] = useState('0');
   const [calcPrev, setCalcPrev] = useState<number | null>(null);
@@ -251,6 +279,9 @@ export default function App() {
     }
     if (openedApp) {
       setOpenedApp(null);
+      setActiveEmail(null);
+      setActivePhoto(null);
+      setActiveChat(null);
     } else if (isLocked) {
       setIsLocked(false);
     }
@@ -351,6 +382,7 @@ export default function App() {
   const renderAppContent = () => {
     switch (openedApp) {
       case 'Calendar':
+        const dayEvents = calendarEvents[selectedDate] || [];
         return (
           <div className="w-full h-full bg-aura-dark text-white pt-14 flex flex-col">
             <div className="px-6 mb-6">
@@ -362,31 +394,43 @@ export default function App() {
             </div>
             <div className="px-6 grid grid-cols-7 gap-2 text-center">
               {Array.from({length: 31}).map((_, i) => {
-                const isToday = i + 1 === parseInt(format(time, 'd'));
+                const day = i + 1;
+                const isToday = day === parseInt(format(time, 'd'));
+                const isSelected = day === selectedDate;
+                const hasEvents = !!calendarEvents[day];
                 return (
-                  <div key={i} className={`w-8 h-8 flex items-center justify-center rounded-full mx-auto text-sm ${isToday ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.6)] font-bold' : 'text-white/80'}`}>
-                    {i + 1}
+                  <div key={i} onClick={() => { vibrate(20); setSelectedDate(day); }} className={`w-8 h-8 flex flex-col items-center justify-center rounded-full mx-auto text-sm cursor-pointer transition-all ${isSelected ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.6)] font-bold scale-110' : isToday ? 'border border-purple-500 text-purple-400' : 'text-white/80 hover:bg-white/10'}`}>
+                    <span>{day}</span>
+                    {hasEvents && !isSelected && <div className="w-1 h-1 bg-purple-400 rounded-full mt-0.5"></div>}
                   </div>
                 );
               })}
             </div>
-            <div className="mt-8 px-6 flex-1 bg-aura-card rounded-t-[32px] pt-6 border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-              <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase mb-4">Upcoming Events</h3>
+            <div className="mt-8 px-6 flex-1 bg-aura-card rounded-t-[32px] pt-6 border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] overflow-y-auto hide-scrollbar pb-10">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase">Events for {format(time, 'MMM')} {selectedDate}</h3>
+                <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center cursor-pointer active:scale-90" onClick={() => {
+                  vibrate(20);
+                  setCalendarEvents(prev => ({
+                    ...prev,
+                    [selectedDate]: [...(prev[selectedDate] || []), { title: 'New Secure Meeting', time: 'TBD', color: 'bg-emerald-500', shadow: 'shadow-[0_0_8px_rgba(16,185,129,0.8)]' }]
+                  }));
+                }}>
+                  <span className="text-white font-bold leading-none mb-0.5">+</span>
+                </div>
+              </div>
               <div className="space-y-4">
-                <div className="flex items-center space-x-4 bg-white/5 p-3 rounded-2xl border border-white/5">
-                  <div className="w-1 h-10 bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.8)]"></div>
-                  <div>
-                    <p className="text-sm font-medium tracking-wide">Sync with Nexus Team</p>
-                    <p className="text-xs text-white/50 mt-0.5">10:00 AM - 11:30 AM</p>
+                {dayEvents.length > 0 ? dayEvents.map((ev: any, i: number) => (
+                  <div key={i} className="flex items-center space-x-4 bg-white/5 p-3 rounded-2xl border border-white/5 animate-in slide-in-from-bottom-2">
+                    <div className={`w-1 h-10 ${ev.color} rounded-full ${ev.shadow}`}></div>
+                    <div>
+                      <p className="text-sm font-medium tracking-wide">{ev.title}</p>
+                      <p className="text-xs text-white/50 mt-0.5">{ev.time}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center space-x-4 bg-white/5 p-3 rounded-2xl border border-white/5">
-                  <div className="w-1 h-10 bg-cyan-500 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.8)]"></div>
-                  <div>
-                    <p className="text-sm font-medium tracking-wide">System Maintenance</p>
-                    <p className="text-xs text-white/50 mt-0.5">2:00 PM - 4:00 PM</p>
-                  </div>
-                </div>
+                )) : (
+                  <div className="text-center text-white/30 text-sm py-6 font-mono">No events scheduled.</div>
+                )}
               </div>
             </div>
           </div>
@@ -401,56 +445,89 @@ export default function App() {
               <div className="absolute bottom-10 text-sm text-aura-secondary font-mono tracking-widest">{format(time, 'ss')}</div>
             </div>
             <div className="w-full px-6 mt-12 space-y-4">
-              <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase mb-2">Alarms</h3>
-              {[
-                { time: '07:00', label: 'Wake Up', active: true },
-                { time: '08:30', label: 'Daily Standup', active: false }
-              ].map((alarm, i) => (
-                <div key={i} className="bg-aura-card rounded-2xl p-4 flex items-center justify-between border border-white/5">
-                  <div>
-                    <div className={`text-3xl font-light tracking-tight ${alarm.active ? 'text-white' : 'text-white/40'}`}>{alarm.time}</div>
-                    <div className={`text-xs tracking-wide mt-1 ${alarm.active ? 'text-aura-secondary' : 'text-white/30'}`}>{alarm.label}</div>
-                  </div>
-                  <div className={`w-12 h-7 rounded-full relative transition-colors duration-300 ${alarm.active ? 'bg-aura-primary shadow-[0_0_10px_rgba(139,92,246,0.5)]' : 'bg-white/10'}`}>
-                    <div className={`w-6 h-6 bg-white rounded-full absolute top-[2px] transition-all duration-300 ${alarm.active ? 'left-[22px]' : 'left-[2px]'}`}></div>
-                  </div>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase">Alarms</h3>
+                <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center cursor-pointer active:scale-90" onClick={() => {
+                  vibrate(20);
+                  setAlarms(prev => [...prev, { id: Date.now(), time: '12:00', label: 'New Alarm', active: true }]);
+                }}>
+                  <span className="text-white font-bold leading-none mb-0.5">+</span>
                 </div>
-              ))}
+              </div>
+              <div className="space-y-4 overflow-y-auto hide-scrollbar max-h-[240px] pb-10">
+                {alarms.map((alarm) => (
+                  <div key={alarm.id} className="bg-aura-card rounded-2xl p-4 flex items-center justify-between border border-white/5">
+                    <div>
+                      <div className={`text-3xl font-light tracking-tight ${alarm.active ? 'text-white' : 'text-white/40'}`}>{alarm.time}</div>
+                      <div className={`text-xs tracking-wide mt-1 ${alarm.active ? 'text-aura-secondary' : 'text-white/30'}`}>{alarm.label}</div>
+                    </div>
+                    <div 
+                      className={`w-12 h-7 rounded-full relative transition-colors duration-300 cursor-pointer ${alarm.active ? 'bg-aura-primary shadow-[0_0_10px_rgba(139,92,246,0.5)]' : 'bg-white/10'}`}
+                      onClick={() => {
+                        vibrate(20);
+                        setAlarms(prev => prev.map(a => a.id === alarm.id ? { ...a, active: !a.active } : a));
+                      }}
+                    >
+                      <div className={`w-6 h-6 bg-white rounded-full absolute top-[2px] transition-all duration-300 ${alarm.active ? 'left-[22px]' : 'left-[2px]'}`}></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         );
       case 'Mail':
+        const emails = [
+          { sender: 'Aura Security', subject: 'Login Attempt Blocked', preview: 'An unauthorized access attempt was prevented at 10:42 AM...', body: 'Security Alert:\n\nAn unauthorized access attempt was prevented at 10:42 AM from IP 192.168.1.44.\n\nYour Pokers Secure Enclave successfully blocked the intrusion. No further action is required, but we recommend reviewing your access logs.', time: '10:42 AM', unread: true },
+          { sender: 'Vanguard', subject: 'Mission Briefing', preview: 'The coordinates for the next drop are attached in the secure file.', body: 'Agent,\n\nThe coordinates for the next drop are attached in the secure file. Proceed to Sector 7G at midnight.\n\nEnsure you are not followed. The package contains the new optics module.', time: 'Yesterday', unread: false },
+          { sender: 'System', subject: 'Weekly Report', preview: 'Your screen time is down 12% this week. System performance is optimal.', body: 'Weekly Diagnostics:\n\n- Screen time: Down 12%\n- Battery Health: 98%\n- Storage: 42% Used\n- Security: 0 Breaches\n\nSystem performance is optimal. Have a great week.', time: 'Monday', unread: false },
+        ];
         return (
-          <div className="w-full h-full bg-aura-dark text-white pt-14 flex flex-col">
-            <div className="flex items-center justify-between px-6 mb-6">
-              <h1 className="text-2xl font-light tracking-widest uppercase text-rose-400">Mail</h1>
-              <Shield size={20} className="text-emerald-400 drop-shadow-[0_0_8px_#34d399]" />
-            </div>
-            <div className="px-6 mb-4 flex space-x-6 border-b border-white/10 pb-3 text-sm tracking-wide">
-              <span className="text-rose-400 font-medium relative">
-                Inbox
-                <div className="absolute -bottom-[13px] left-0 w-full h-[2px] bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]"></div>
-              </span>
-              <span className="text-white/40 hover:text-white/70 cursor-pointer transition-colors">Sent</span>
-              <span className="text-white/40 hover:text-white/70 cursor-pointer transition-colors">Encrypted</span>
-            </div>
-            <div className="flex-1 overflow-y-auto hide-scrollbar px-4 space-y-3 pb-10">
-              {[
-                { sender: 'Aura Security', subject: 'Login Attempt Blocked', preview: 'An unauthorized access attempt was prevented at 10:42 AM...', time: '10:42 AM', unread: true },
-                { sender: 'Vanguard', subject: 'Mission Briefing', preview: 'The coordinates for the next drop are attached in the secure file.', time: 'Yesterday', unread: false },
-                { sender: 'System', subject: 'Weekly Report', preview: 'Your screen time is down 12% this week. System performance is optimal.', time: 'Monday', unread: false },
-              ].map((email, i) => (
-                <div key={i} className="bg-aura-card rounded-2xl p-4 border border-white/5 cursor-pointer active:scale-[0.98] transition-transform relative overflow-hidden">
-                  {email.unread && <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.8)]"></div>}
-                  <div className="flex justify-between items-baseline mb-1">
-                    <h3 className={`font-medium tracking-wide ${email.unread ? 'text-white' : 'text-white/70'}`}>{email.sender}</h3>
-                    <span className="text-[10px] text-white/40 font-mono">{email.time}</span>
-                  </div>
-                  <h4 className={`text-sm mb-1 tracking-wide ${email.unread ? 'text-rose-400' : 'text-white/60'}`}>{email.subject}</h4>
-                  <p className="text-xs text-white/40 truncate">{email.preview}</p>
+          <div className="w-full h-full bg-aura-dark text-white pt-14 flex flex-col relative">
+            {activeEmail !== null ? (
+              <div className="absolute inset-0 bg-aura-dark z-20 flex flex-col pt-14 px-6 animate-in slide-in-from-right duration-300">
+                <div className="flex items-center mb-6 cursor-pointer active:opacity-50" onClick={() => setActiveEmail(null)}>
+                  <ChevronRight size={20} className="rotate-180 text-rose-400 mr-2" />
+                  <span className="text-rose-400 font-medium tracking-wide">Back</span>
                 </div>
-              ))}
-            </div>
+                <h2 className="text-2xl font-light mb-2">{emails[activeEmail].subject}</h2>
+                <div className="flex justify-between items-center border-b border-white/10 pb-4 mb-4">
+                  <span className="font-medium text-white/80">{emails[activeEmail].sender}</span>
+                  <span className="text-xs text-white/40 font-mono">{emails[activeEmail].time}</span>
+                </div>
+                <div className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
+                  {emails[activeEmail].body}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between px-6 mb-6">
+                  <h1 className="text-2xl font-light tracking-widest uppercase text-rose-400">Mail</h1>
+                  <Shield size={20} className="text-emerald-400 drop-shadow-[0_0_8px_#34d399]" />
+                </div>
+                <div className="px-6 mb-4 flex space-x-6 border-b border-white/10 pb-3 text-sm tracking-wide">
+                  <span className="text-rose-400 font-medium relative">
+                    Inbox
+                    <div className="absolute -bottom-[13px] left-0 w-full h-[2px] bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]"></div>
+                  </span>
+                  <span className="text-white/40 hover:text-white/70 cursor-pointer transition-colors">Sent</span>
+                  <span className="text-white/40 hover:text-white/70 cursor-pointer transition-colors">Encrypted</span>
+                </div>
+                <div className="flex-1 overflow-y-auto hide-scrollbar px-4 space-y-3 pb-10">
+                  {emails.map((email, i) => (
+                    <div key={i} onClick={() => setActiveEmail(i)} className="bg-aura-card rounded-2xl p-4 border border-white/5 cursor-pointer active:scale-[0.98] transition-transform relative overflow-hidden">
+                      {email.unread && <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.8)]"></div>}
+                      <div className="flex justify-between items-baseline mb-1">
+                        <h3 className={`font-medium tracking-wide ${email.unread ? 'text-white' : 'text-white/70'}`}>{email.sender}</h3>
+                        <span className="text-[10px] text-white/40 font-mono">{email.time}</span>
+                      </div>
+                      <h4 className={`text-sm mb-1 tracking-wide ${email.unread ? 'text-rose-400' : 'text-white/60'}`}>{email.subject}</h4>
+                      <p className="text-xs text-white/40 truncate">{email.preview}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         );
       case 'Vault':
@@ -604,24 +681,41 @@ export default function App() {
         );
       case 'Gallery':
         return (
-          <div className="w-full h-full bg-aura-dark text-white pt-14 flex flex-col overflow-y-auto hide-scrollbar">
-            <div className="flex items-center justify-between px-6 mb-6">
-              <h1 className="text-2xl font-light tracking-widest uppercase text-pink-400">Gallery</h1>
-              <ImageIcon size={20} className="text-pink-400 drop-shadow-[0_0_8px_#f472b6]" />
-            </div>
-            <div className="px-4 grid grid-cols-3 gap-2 pb-10">
-              {photos.length > 0 ? photos.map((photo, i) => (
-                <div key={i} className="aspect-square bg-aura-card rounded-xl overflow-hidden border border-white/10 shadow-lg animate-in zoom-in duration-300">
-                  <img src={photo} alt={`Captured ${i}`} className="w-full h-full object-cover" />
+          <div className="w-full h-full bg-aura-dark text-white pt-14 flex flex-col relative">
+            {activePhoto !== null ? (
+              <div className="absolute inset-0 bg-black z-20 flex flex-col animate-in zoom-in-95 duration-300">
+                <div className="absolute top-14 left-6 z-30 w-10 h-10 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center cursor-pointer active:scale-90" onClick={() => setActivePhoto(null)}>
+                  <ChevronRight size={24} className="rotate-180 text-white" />
                 </div>
-              )) : (
-                <div className="col-span-3 flex flex-col items-center justify-center py-20 text-white/30">
-                  <ImageIcon size={48} className="mb-4 opacity-50" />
-                  <p className="font-mono text-sm">No captures found.</p>
-                  <p className="font-mono text-xs mt-2">Use Optics to capture images.</p>
+                <div className="absolute top-14 right-6 z-30 w-10 h-10 bg-rose-500/20 backdrop-blur-md rounded-full flex items-center justify-center cursor-pointer active:scale-90 border border-rose-500/50" onClick={() => {
+                  setPhotos(prev => prev.filter((_, i) => i !== activePhoto));
+                  setActivePhoto(null);
+                }}>
+                  <span className="text-rose-500 font-bold text-sm">X</span>
                 </div>
-              )}
-            </div>
+                <img src={photos[activePhoto]} alt="Full screen" className="w-full h-full object-contain" />
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between px-6 mb-6">
+                  <h1 className="text-2xl font-light tracking-widest uppercase text-pink-400">Gallery</h1>
+                  <ImageIcon size={20} className="text-pink-400 drop-shadow-[0_0_8px_#f472b6]" />
+                </div>
+                <div className="px-4 grid grid-cols-3 gap-2 pb-10 overflow-y-auto hide-scrollbar">
+                  {photos.length > 0 ? photos.map((photo, i) => (
+                    <div key={i} onClick={() => setActivePhoto(i)} className="aspect-square bg-aura-card rounded-xl overflow-hidden border border-white/10 shadow-lg animate-in zoom-in duration-300 cursor-pointer active:scale-95 transition-transform">
+                      <img src={photo} alt={`Captured ${i}`} className="w-full h-full object-cover" />
+                    </div>
+                  )) : (
+                    <div className="col-span-3 flex flex-col items-center justify-center py-20 text-white/30">
+                      <ImageIcon size={48} className="mb-4 opacity-50" />
+                      <p className="font-mono text-sm">No captures found.</p>
+                      <p className="font-mono text-xs mt-2">Use Optics to capture images.</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         );
       case 'Optics':
@@ -692,27 +786,55 @@ export default function App() {
               <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase mb-3 ml-2">Appearance</h3>
               <div className="flex space-x-3 overflow-x-auto hide-scrollbar pb-2">
                 {WALLPAPERS.map((wp, i) => (
-                  <div key={i} onClick={() => setWallpaper(wp)} className={`flex-shrink-0 w-20 h-32 rounded-xl bg-cover bg-center cursor-pointer transition-all ${wallpaper === wp ? 'ring-2 ring-aura-primary scale-105 shadow-[0_0_15px_rgba(139,92,246,0.5)]' : 'opacity-50 hover:opacity-100'}`} style={{ backgroundImage: `url(${wp})` }}></div>
+                  <div key={i} onClick={() => { vibrate(20); setWallpaper(wp); }} className={`flex-shrink-0 w-20 h-32 rounded-xl bg-cover bg-center cursor-pointer transition-all ${wallpaper === wp ? 'ring-2 ring-aura-primary scale-105 shadow-[0_0_15px_rgba(139,92,246,0.5)]' : 'opacity-50 hover:opacity-100'}`} style={{ backgroundImage: `url(${wp})` }}></div>
                 ))}
               </div>
             </div>
             <div className="space-y-4 px-4 pb-10">
-              {[
-                { icon: Zap, color: 'text-yellow-400', label: 'Network & Connectivity', value: 'Connected' },
-                { icon: Fingerprint, color: 'text-aura-secondary', label: 'Security & Biometrics' },
-                { icon: Bell, color: 'text-aura-accent', label: 'Alerts & Haptics' },
-              ].map((item, i) => (
-                <div key={i} className="bg-aura-card rounded-2xl p-4 flex items-center border border-white/5 active:scale-[0.98] transition-transform cursor-pointer">
+              <div className="bg-aura-card rounded-2xl p-4 flex items-center justify-between border border-white/5">
+                <div className="flex items-center">
                   <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center mr-4">
-                    <item.icon size={20} className={item.color} />
+                    <Wifi size={20} className="text-cyan-400" />
                   </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium tracking-wide">{item.label}</div>
-                    {item.value && <div className="text-xs text-white/40 mt-0.5">{item.value}</div>}
+                  <div>
+                    <div className="text-sm font-medium tracking-wide">Wi-Fi</div>
+                    <div className="text-xs text-white/40 mt-0.5">{wifiOn ? 'Pokers_Net' : 'Disconnected'}</div>
                   </div>
-                  <ChevronRight size={18} className="text-white/20" />
                 </div>
-              ))}
+                <div 
+                  className={`w-12 h-7 rounded-full relative transition-colors duration-300 cursor-pointer ${wifiOn ? 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]' : 'bg-white/10'}`}
+                  onClick={() => { vibrate(20); setWifiOn(!wifiOn); }}
+                >
+                  <div className={`w-6 h-6 bg-white rounded-full absolute top-[2px] transition-all duration-300 ${wifiOn ? 'left-[22px]' : 'left-[2px]'}`}></div>
+                </div>
+              </div>
+              <div className="bg-aura-card rounded-2xl p-4 flex items-center justify-between border border-white/5">
+                <div className="flex items-center">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center mr-4">
+                    <Bluetooth size={20} className="text-aura-primary" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium tracking-wide">Bluetooth</div>
+                    <div className="text-xs text-white/40 mt-0.5">{btOn ? 'Discoverable' : 'Off'}</div>
+                  </div>
+                </div>
+                <div 
+                  className={`w-12 h-7 rounded-full relative transition-colors duration-300 cursor-pointer ${btOn ? 'bg-aura-primary shadow-[0_0_10px_rgba(139,92,246,0.5)]' : 'bg-white/10'}`}
+                  onClick={() => { vibrate(20); setBtOn(!btOn); }}
+                >
+                  <div className={`w-6 h-6 bg-white rounded-full absolute top-[2px] transition-all duration-300 ${btOn ? 'left-[22px]' : 'left-[2px]'}`}></div>
+                </div>
+              </div>
+              <div className="bg-aura-card rounded-2xl p-4 flex items-center border border-white/5 active:scale-[0.98] transition-transform cursor-pointer">
+                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center mr-4">
+                  <Fingerprint size={20} className="text-emerald-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium tracking-wide">Security & Biometrics</div>
+                  <div className="text-xs text-white/40 mt-0.5">Aura Enclave Active</div>
+                </div>
+                <ChevronRight size={18} className="text-white/20" />
+              </div>
             </div>
           </div>
         );
@@ -761,38 +883,104 @@ export default function App() {
           </div>
         );
       case 'Comms':
+        const chats = [
+          { name: 'Cipher', time: '09:41', msg: 'Data transfer complete.', unread: true },
+          { name: 'Nexus Team', time: 'Yesterday', msg: 'Meeting at coordinates 44.2.', unread: false },
+          { name: 'Echo', time: 'Cycle 4', msg: 'System update required.', unread: false },
+        ];
         return (
-          <div className="w-full h-full bg-aura-dark text-white pt-12 flex flex-col">
-            <div className="flex justify-between items-center px-6 mb-6">
-              <div className="flex items-center space-x-3">
-                <h1 className="text-2xl font-light tracking-widest uppercase text-aura-primary">Comms</h1>
-                <Shield size={16} className="text-emerald-400 drop-shadow-[0_0_8px_#34d399]" />
-              </div>
-              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                <Search size={16} />
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto hide-scrollbar px-4 space-y-3 pb-10">
-              {[
-                { name: 'Cipher', time: '09:41', msg: 'Data transfer complete.', unread: true },
-                { name: 'Nexus Team', time: 'Yesterday', msg: 'Meeting at coordinates 44.2.', unread: false },
-                { name: 'Echo', time: 'Cycle 4', msg: 'System update required.', unread: false },
-              ].map((chat, i) => (
-                <div key={i} className="bg-aura-card rounded-2xl p-4 flex items-center border border-white/5 cursor-pointer active:scale-[0.98] transition-transform">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${chat.unread ? 'bg-gradient-to-br from-aura-primary to-aura-secondary text-white shadow-[0_0_15px_rgba(139,92,246,0.4)]' : 'bg-white/10 text-white/50'}`}>
-                    {chat.name[0]}
-                  </div>
-                  <div className="ml-4 flex-1">
-                    <div className="flex justify-between items-baseline mb-1">
-                      <h3 className={`font-medium tracking-wide ${chat.unread ? 'text-white' : 'text-white/70'}`}>{chat.name}</h3>
-                      <span className="text-[10px] text-aura-secondary font-mono">{chat.time}</span>
+          <div className="w-full h-full bg-aura-dark text-white pt-12 flex flex-col relative">
+            {activeChat !== null ? (
+              <div className="absolute inset-0 bg-aura-dark z-20 flex flex-col pt-12 animate-in slide-in-from-right duration-300">
+                <div className="flex items-center justify-between px-4 pb-4 border-b border-white/10">
+                  <div className="flex items-center cursor-pointer active:opacity-50" onClick={() => setActiveChat(null)}>
+                    <ChevronRight size={24} className="rotate-180 text-aura-primary mr-1" />
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-aura-primary to-aura-secondary flex items-center justify-center text-sm font-bold mr-3">
+                      {chats[activeChat].name[0]}
                     </div>
-                    <p className={`text-xs truncate w-48 ${chat.unread ? 'text-white/90' : 'text-white/40'}`}>{chat.msg}</p>
+                    <span className="font-medium tracking-wide">{chats[activeChat].name}</span>
                   </div>
-                  {chat.unread && <div className="w-2 h-2 bg-aura-secondary rounded-full ml-2 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></div>}
+                  <Phone size={20} className="text-aura-primary" />
                 </div>
-              ))}
-            </div>
+                <div className="flex-1 overflow-y-auto hide-scrollbar p-4 space-y-4 flex flex-col">
+                  {chatMessages[activeChat]?.map((msg, i) => (
+                    <div key={i} className={`flex flex-col max-w-[80%] ${msg.isMe ? 'self-end items-end' : 'self-start items-start'}`}>
+                      <div className={`p-3 rounded-2xl ${msg.isMe ? 'bg-aura-primary text-white rounded-tr-sm' : 'bg-white/10 text-white/90 rounded-tl-sm'}`}>
+                        <p className="text-sm">{msg.msg}</p>
+                      </div>
+                      <span className="text-[10px] text-white/40 mt-1 font-mono">{msg.time}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-4 border-t border-white/10 bg-aura-dark">
+                  <div className="flex items-center bg-white/5 rounded-full border border-white/10 p-1 pl-4">
+                    <input 
+                      type="text" 
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && chatInput.trim()) {
+                          setChatMessages(prev => ({
+                            ...prev,
+                            [activeChat]: [...(prev[activeChat] || []), { sender: 'Me', msg: chatInput, time: format(new Date(), 'HH:mm'), isMe: true }]
+                          }));
+                          setChatInput('');
+                        }
+                      }}
+                      placeholder="Secure message..."
+                      className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder-white/30"
+                    />
+                    <div 
+                      className="w-8 h-8 rounded-full bg-aura-primary flex items-center justify-center cursor-pointer active:scale-90 transition-transform ml-2"
+                      onClick={() => {
+                        if (chatInput.trim()) {
+                          setChatMessages(prev => ({
+                            ...prev,
+                            [activeChat]: [...(prev[activeChat] || []), { sender: 'Me', msg: chatInput, time: format(new Date(), 'HH:mm'), isMe: true }]
+                          }));
+                          setChatInput('');
+                        }
+                      }}
+                    >
+                      <ChevronRight size={16} className="text-white" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center px-6 mb-6">
+                  <div className="flex items-center space-x-3">
+                    <h1 className="text-2xl font-light tracking-widest uppercase text-aura-primary">Comms</h1>
+                    <Shield size={16} className="text-emerald-400 drop-shadow-[0_0_8px_#34d399]" />
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                    <Search size={16} />
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto hide-scrollbar px-4 space-y-3 pb-10">
+                  {chats.map((chat, i) => {
+                    const msgs = chatMessages[i];
+                    const lastMsg = msgs && msgs.length > 0 ? msgs[msgs.length - 1] : chat;
+                    return (
+                      <div key={i} onClick={() => setActiveChat(i)} className="bg-aura-card rounded-2xl p-4 flex items-center border border-white/5 cursor-pointer active:scale-[0.98] transition-transform">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${chat.unread ? 'bg-gradient-to-br from-aura-primary to-aura-secondary text-white shadow-[0_0_15px_rgba(139,92,246,0.4)]' : 'bg-white/10 text-white/50'}`}>
+                          {chat.name[0]}
+                        </div>
+                        <div className="ml-4 flex-1">
+                          <div className="flex justify-between items-baseline mb-1">
+                            <h3 className={`font-medium tracking-wide ${chat.unread ? 'text-white' : 'text-white/70'}`}>{chat.name}</h3>
+                            <span className="text-[10px] text-aura-secondary font-mono">{lastMsg.time}</span>
+                          </div>
+                          <p className={`text-xs truncate w-48 ${chat.unread ? 'text-white/90' : 'text-white/40'}`}>{lastMsg.msg}</p>
+                        </div>
+                        {chat.unread && <div className="w-2 h-2 bg-aura-secondary rounded-full ml-2 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         );
       case 'Net':
