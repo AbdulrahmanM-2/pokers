@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Battery, Wifi, Signal, Lock, Camera, Calculator, 
   CloudLightning, Settings, MessageSquare, Phone, Mail, Globe, 
-  Map, Clock, ChevronRight, Fingerprint, Zap, Search, 
+  Map, Clock, ChevronRight, Fingerprint, Zap, Bell, Search, 
   User, Activity, Bluetooth, Moon, Sun, Volume2, Maximize, 
   Power, Shield, ShoppingBag, Spade, Music, FileText, Download, 
   Image as ImageIcon, Play, Pause, SkipForward, SkipBack, RefreshCw,
   Calendar as CalendarIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
-
+import bootLogo from './assets/boot-logo.png';
 
 // --- Helpers ---
 const vibrate = (pattern: number | number[] = 50) => {
@@ -159,6 +159,11 @@ export default function App() {
   // Comms State
   const [activeChat, setActiveChat] = useState<number | null>(null);
   const [chatInput, setChatInput] = useState('');
+  const [chats, setChats] = useState([
+    { id: 0, name: 'Cipher', time: '09:41', msg: 'Data transfer complete.', unread: true },
+    { id: 1, name: 'Nexus Team', time: 'Yesterday', msg: 'Meeting at coordinates 44.2.', unread: false },
+    { id: 2, name: 'Echo', time: 'Cycle 4', msg: 'System update required.', unread: false },
+  ]);
   const [chatMessages, setChatMessages] = useState<Record<number, any[]>>({
     0: [{ sender: 'Cipher', msg: 'Data transfer complete.', time: '09:41', isMe: false }],
     1: [{ sender: 'Nexus Team', msg: 'Meeting at coordinates 44.2.', time: 'Yesterday', isMe: false }],
@@ -933,11 +938,6 @@ export default function App() {
           </div>
         );
       case 'Comms':
-        const chats = [
-          { name: 'Cipher', time: '09:41', msg: 'Data transfer complete.', unread: true },
-          { name: 'Nexus Team', time: 'Yesterday', msg: 'Meeting at coordinates 44.2.', unread: false },
-          { name: 'Echo', time: 'Cycle 4', msg: 'System update required.', unread: false },
-        ];
         return (
           <div className="w-full h-full bg-aura-dark text-white pt-12 flex flex-col relative">
             {activeChat !== null ? (
@@ -946,9 +946,9 @@ export default function App() {
                   <div className="flex items-center cursor-pointer active:opacity-50" onClick={() => setActiveChat(null)}>
                     <ChevronRight size={24} className="rotate-180 text-aura-primary mr-1" />
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-aura-primary to-aura-secondary flex items-center justify-center text-sm font-bold mr-3">
-                      {chats[activeChat].name[0]}
+                      {chats.find(c => c.id === activeChat)?.name[0] || '?'}
                     </div>
-                    <span className="font-medium tracking-wide">{chats[activeChat].name}</span>
+                    <span className="font-medium tracking-wide">{chats.find(c => c.id === activeChat)?.name || 'Unknown'}</span>
                   </div>
                   <Phone size={20} className="text-aura-primary" />
                 </div>
@@ -1004,16 +1004,29 @@ export default function App() {
                     <h1 className="text-2xl font-light tracking-widest uppercase text-aura-primary">Comms</h1>
                     <Shield size={16} className="text-emerald-400 drop-shadow-[0_0_8px_#34d399]" />
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                    <Search size={16} />
+                  <div className="flex space-x-2">
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center cursor-pointer active:scale-90">
+                      <Search size={16} />
+                    </div>
+                    <div 
+                      className="w-8 h-8 rounded-full bg-aura-primary flex items-center justify-center cursor-pointer active:scale-90 shadow-[0_0_10px_rgba(139,92,246,0.5)]"
+                      onClick={() => {
+                        vibrate(20);
+                        const newId = Date.now();
+                        setChats(prev => [{ id: newId, name: 'New Contact', time: format(new Date(), 'HH:mm'), msg: 'Start a secure chat...', unread: false }, ...prev]);
+                        setActiveChat(newId);
+                      }}
+                    >
+                      <span className="text-white font-bold leading-none mb-0.5">+</span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto hide-scrollbar px-4 space-y-3 pb-10">
-                  {chats.map((chat, i) => {
-                    const msgs = chatMessages[i];
+                  {chats.map((chat) => {
+                    const msgs = chatMessages[chat.id];
                     const lastMsg = msgs && msgs.length > 0 ? msgs[msgs.length - 1] : chat;
                     return (
-                      <div key={i} onClick={() => setActiveChat(i)} className="bg-aura-card rounded-2xl p-4 flex items-center border border-white/5 cursor-pointer active:scale-[0.98] transition-transform">
+                      <div key={chat.id} onClick={() => setActiveChat(chat.id)} className="bg-aura-card rounded-2xl p-4 flex items-center border border-white/5 cursor-pointer active:scale-[0.98] transition-transform">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${chat.unread ? 'bg-gradient-to-br from-aura-primary to-aura-secondary text-white shadow-[0_0_15px_rgba(139,92,246,0.4)]' : 'bg-white/10 text-white/50'}`}>
                           {chat.name[0]}
                         </div>
@@ -1055,23 +1068,43 @@ export default function App() {
         );
       case 'Phone':
         return (
-          <div className="w-full h-full bg-aura-dark text-white pt-14 flex flex-col items-center">
+          <div className="w-full h-full bg-aura-dark text-white pt-14 flex flex-col">
+            <div className="flex justify-between items-center px-6 mb-2">
+              <h1 className="text-2xl font-light tracking-widest uppercase text-emerald-400">Phone</h1>
+              <Shield size={16} className="text-emerald-400 drop-shadow-[0_0_8px_#34d399]" />
+            </div>
             <div className="flex-1 flex flex-col items-center justify-center w-full px-8">
               <div className="text-4xl font-light tracking-widest h-12 mb-8 text-emerald-400">{dialerInput || ' '}</div>
               <div className="grid grid-cols-3 gap-6 w-full max-w-[260px]">
                 {['1','2','3','4','5','6','7','8','9','*','0','#'].map(num => (
-                  <div key={num} onClick={() => setDialerInput(prev => prev.length < 15 ? prev + num : prev)} className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-light cursor-pointer active:bg-white/20 active:scale-90 transition-all">
+                  <div key={num} onClick={() => { vibrate(10); setDialerInput(prev => prev.length < 15 ? prev + num : prev); }} className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-light cursor-pointer active:bg-white/20 active:scale-90 transition-all">
                     {num}
                   </div>
                 ))}
               </div>
               <div className="mt-10 flex space-x-6">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center cursor-pointer active:scale-90 transition-all shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center cursor-pointer active:scale-90 transition-all shadow-[0_0_20px_rgba(16,185,129,0.4)]" onClick={() => vibrate([30, 50, 30])}>
                   <Phone size={28} className="text-emerald-400 fill-current" />
                 </div>
-                <div onClick={() => setDialerInput(prev => prev.slice(0, -1))} className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center cursor-pointer active:scale-90 transition-all">
+                <div onClick={() => { vibrate(10); setDialerInput(prev => prev.slice(0, -1)); }} className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center cursor-pointer active:scale-90 transition-all">
                   <ChevronRight size={28} className="text-rose-400 rotate-180" />
                 </div>
+              </div>
+            </div>
+            <div className="h-16 border-t border-white/10 flex justify-around items-center px-4 pb-2">
+              <div className="flex flex-col items-center text-white/40 hover:text-emerald-400 cursor-pointer transition-colors">
+                <Clock size={20} />
+                <span className="text-[10px] mt-1">Recents</span>
+              </div>
+              <div className="flex flex-col items-center text-white/40 hover:text-emerald-400 cursor-pointer transition-colors">
+                <User size={20} />
+                <span className="text-[10px] mt-1">Contacts</span>
+              </div>
+              <div className="flex flex-col items-center text-emerald-400 cursor-pointer">
+                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                  <Phone size={20} />
+                </div>
+                <span className="text-[10px] mt-1">Keypad</span>
               </div>
             </div>
           </div>
@@ -1182,14 +1215,15 @@ export default function App() {
         className="relative w-full h-full bg-cover bg-center overflow-hidden transition-all duration-700"
         style={{ backgroundImage: `url(${wallpaper})` }}
       >
-        <div className="absolute inset-0 bg-white/40"></div>
+        <div className="absolute inset-0 bg-black/40"></div>
 
         {/* Boot Sequence */}
         {isBooting && (
-          <div className="absolute inset-0 z-[100] bg-white flex flex-col items-center justify-center animate-in fade-out duration-1000 delay-1500 fill-mode-forwards">
+          <div className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center animate-in fade-out duration-1000 delay-1500 fill-mode-forwards">
             <div className="w-32 h-32 flex items-center justify-center animate-pulse-glow">
+              <img src={bootLogo} alt="Pokers Boot Logo" className="w-full h-full object-contain drop-shadow-[0_0_30px_rgba(139,92,246,0.6)]" />
             </div>
-            <h1 className="text-black mt-6 text-2xl font-light tracking-[0.3em] uppercase">Poker</h1>
+            <h1 className="text-white mt-6 text-2xl font-light tracking-[0.3em] uppercase">Pokers</h1>
             <div className="w-32 h-1 bg-white/10 rounded-full mt-8 overflow-hidden">
               <div className="h-full bg-white rounded-full animate-[scan_1.5s_ease-in-out_forwards]"></div>
             </div>
