@@ -9,7 +9,6 @@ import {
   Calendar as CalendarIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
-import bootLogo from './assets/boot-logo.png';
 
 // --- Helpers ---
 const vibrate = (pattern: number | number[] = 50) => {
