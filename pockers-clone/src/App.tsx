@@ -2,13 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Battery, Wifi, Signal, Lock, Camera, Calculator, 
   CloudLightning, Settings, MessageSquare, Phone, Mail, Globe, 
-  Map, Clock, ChevronRight, Fingerprint, Zap, Search, 
+  Map, Clock, ChevronRight, Fingerprint, Zap, Bell, Search, 
   User, Activity, Bluetooth, Moon, Sun, Volume2, Maximize, 
   Power, Shield, ShoppingBag, Spade, Music, FileText, Download, 
   Image as ImageIcon, Play, Pause, SkipForward, SkipBack, RefreshCw,
   Calendar as CalendarIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
+import bootLogo from './assets/boot-logo.png';
 
 // --- Helpers ---
 const vibrate = (pattern: number | number[] = 50) => {
@@ -49,9 +50,9 @@ const WALLPAPERS = [
 
 // --- Components ---
 
-const StatusBar = ({ time, onRightClick, wifiOn, batteryPct }: { time: Date, onRightClick: () => void, wifiOn: boolean, batteryPct: number }) => (
+const StatusBar = ({ time, onRightClick, onLeftClick, wifiOn, batteryPct }: { time: Date, onRightClick: () => void, onLeftClick: () => void, wifiOn: boolean, batteryPct: number }) => (
   <div className="absolute top-0 w-full h-[40px] flex justify-between items-center px-5 text-xs font-medium z-50 text-white/90">
-    <div className="flex items-center space-x-2 w-1/3">
+    <div className="flex items-center space-x-2 w-1/3 cursor-pointer active:opacity-50" onClick={onLeftClick}>
       <span>{format(time, 'h:mm')}</span>
       <Shield size={10} className="text-emerald-400 drop-shadow-[0_0_5px_#34d399]" />
     </div>
@@ -112,6 +113,17 @@ export default function App() {
   const [notification, setNotification] = useState<{title: string, msg: string, app: string} | null>(null);
   const [nodeExpanded, setNodeExpanded] = useState(false);
   
+  // New iOS-competitive features
+  const [recentApps, setRecentApps] = useState<string[]>([]);
+  const [showSwitcher, setShowSwitcher] = useState(false);
+  const [showAssistant, setShowAssistant] = useState(false);
+  const [assistantText, setAssistantText] = useState('');
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const homeClickCount = useRef(0);
+  const homeClickTimer = useRef<any>(null);
+  const homePressTimer = useRef<any>(null);
+
   // Persistent OS State
   const [installedApps, setInstalledApps] = useState<string[]>(() => {
     const saved = localStorage.getItem('pokers_apps');
@@ -266,16 +278,22 @@ export default function App() {
     }, 1200);
   };
 
+  const launchApp = (appId: string) => {
+    vibrate(20);
+    setOpenedApp(appId);
+    setRecentApps(prev => {
+      const newRecent = prev.filter(id => id !== appId);
+      return [appId, ...newRecent].slice(0, 5);
+    });
+  };
+
   const handleHomeSwipe = () => {
     vibrate(40);
-    if (nodeExpanded) {
-      setNodeExpanded(false);
-      return;
-    }
-    if (showControlCenter) {
-      setShowControlCenter(false);
-      return;
-    }
+    if (showAssistant) { setShowAssistant(false); return; }
+    if (showSwitcher) { setShowSwitcher(false); return; }
+    if (showNotifications) { setShowNotifications(false); return; }
+    if (nodeExpanded) { setNodeExpanded(false); return; }
+    if (showControlCenter) { setShowControlCenter(false); return; }
     if (openedApp) {
       setOpenedApp(null);
       setActiveEmail(null);
@@ -283,6 +301,39 @@ export default function App() {
       setActiveChat(null);
     } else if (isLocked) {
       setIsLocked(false);
+    }
+  };
+
+  const onHomePointerDown = () => {
+    homePressTimer.current = setTimeout(() => {
+      vibrate([50, 50]);
+      setShowAssistant(true);
+      setAssistantText("Listening...");
+      setTimeout(() => setAssistantText("I'm sorry, I cannot connect to the network right now."), 2000);
+      homeClickCount.current = -1;
+    }, 500);
+  };
+
+  const onHomePointerUp = () => {
+    if (homePressTimer.current) clearTimeout(homePressTimer.current);
+    if (homeClickCount.current === -1) {
+      homeClickCount.current = 0;
+      return;
+    }
+    homeClickCount.current++;
+    if (homeClickCount.current === 1) {
+      homeClickTimer.current = setTimeout(() => {
+        if (homeClickCount.current === 1) handleHomeSwipe();
+        homeClickCount.current = 0;
+      }, 250);
+    } else if (homeClickCount.current === 2) {
+      clearTimeout(homeClickTimer.current);
+      vibrate([20, 20]);
+      if (!isLocked) {
+        setShowSwitcher(true);
+        setOpenedApp(null);
+      }
+      homeClickCount.current = 0;
     }
   };
 
@@ -564,7 +615,7 @@ export default function App() {
                     </div>
                     <div className="ml-2">
                       {isInstalled ? (
-                        <button onClick={() => setOpenedApp(appId)} className="px-4 py-1.5 bg-white/10 rounded-full text-xs font-medium text-white border border-white/20 active:scale-95 transition-transform">OPEN</button>
+                        <button onClick={() => launchApp(appId)} className="px-4 py-1.5 bg-white/10 rounded-full text-xs font-medium text-white border border-white/20 active:scale-95 transition-transform">OPEN</button>
                       ) : isDownloading ? (
                         <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-fuchsia-400 animate-spin"></div>
                       ) : (
@@ -1135,10 +1186,12 @@ export default function App() {
 
         {/* Boot Sequence */}
         {isBooting && (
-          <div className="absolute inset-0 z-[100] bg-white flex flex-col items-center justify-center animate-in fade-out duration-1000 delay-1500 fill-mode-forwards">
-            <div className="w-32 h-32 flex items-center justify-center animate-pulse-glow"></div>
-            <h1 className="text-black mt-6 text-2xl font-light tracking-[0.3em] uppercase">Poker</h1>
-            <div className="w-32 h-1 bg-green/10 rounded-full mt-8 overflow-hidden">
+          <div className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center animate-in fade-out duration-1000 delay-1500 fill-mode-forwards">
+            <div className="w-32 h-32 flex items-center justify-center animate-pulse-glow">
+              <img src={bootLogo} alt="Pokers Boot Logo" className="w-full h-full object-contain drop-shadow-[0_0_30px_rgba(139,92,246,0.6)]" />
+            </div>
+            <h1 className="text-white mt-6 text-2xl font-light tracking-[0.3em] uppercase">Pokers</h1>
+            <div className="w-32 h-1 bg-white/10 rounded-full mt-8 overflow-hidden">
               <div className="h-full bg-white rounded-full animate-[scan_1.5s_ease-in-out_forwards]"></div>
             </div>
           </div>
@@ -1147,7 +1200,75 @@ export default function App() {
         {/* Flashlight Overlay */}
         {flashlightOn && <div className="absolute inset-0 z-[60] pointer-events-none bg-white/20 mix-blend-overlay shadow-[inset_0_0_150px_rgba(255,255,255,0.8)]"></div>}
 
-        <StatusBar time={time} onRightClick={() => setShowControlCenter(!showControlCenter)} wifiOn={wifiOn} batteryPct={batteryPct} />
+        <StatusBar time={time} onRightClick={() => setShowControlCenter(!showControlCenter)} onLeftClick={() => setShowNotifications(!showNotifications)} wifiOn={wifiOn} batteryPct={batteryPct} />
+
+        {/* Notification Center Overlay */}
+        {showNotifications && (
+          <div className="absolute inset-0 z-40 bg-black/60 backdrop-blur-2xl animate-in slide-in-from-top duration-300 pt-16 px-4">
+            <h2 className="text-white text-2xl font-light tracking-widest mb-6 px-2">Notifications</h2>
+            <div className="space-y-3">
+              {notification ? (
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-6 h-6 rounded-full bg-aura-primary flex items-center justify-center"><MessageSquare size={12} color="white"/></div>
+                      <span className="text-white/70 text-xs uppercase tracking-wider">{notification.app}</span>
+                    </div>
+                    <span className="text-white/40 text-xs">Now</span>
+                  </div>
+                  <h4 className="text-white font-medium">{notification.title}</h4>
+                  <p className="text-white/70 text-sm mt-1">{notification.msg}</p>
+                </div>
+              ) : (
+                <div className="text-center text-white/40 mt-10 font-medium">No new notifications</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* App Switcher Overlay */}
+        {showSwitcher && (
+          <div className="absolute inset-0 z-40 bg-black/40 backdrop-blur-md flex items-center overflow-x-auto hide-scrollbar px-10 space-x-6 snap-x snap-mandatory animate-in zoom-in-95 duration-300">
+            {recentApps.length === 0 ? (
+              <div className="w-full text-center text-white/50 font-medium">No Recent Apps</div>
+            ) : (
+              recentApps.map(appId => {
+                const app = APP_REGISTRY[appId] || { name: appId, icon: Settings, gradient: 'from-gray-500 to-gray-700' };
+                return (
+                  <div key={appId} className="snap-center shrink-0 flex flex-col items-center cursor-pointer active:scale-95 transition-transform" onClick={() => { setShowSwitcher(false); launchApp(appId); }}>
+                    <div className="w-[220px] h-[450px] bg-aura-dark rounded-3xl border border-white/20 shadow-2xl overflow-hidden mb-4 relative flex items-center justify-center">
+                      <div className={`absolute inset-0 bg-gradient-to-br ${app.gradient} opacity-20`}></div>
+                      <app.icon size={64} className="text-white/50" />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-6 h-6 rounded-md bg-gradient-to-br ${app.gradient} flex items-center justify-center`}>
+                        <app.icon size={12} className="text-white" />
+                      </div>
+                      <span className="text-white font-medium">{app.name}</span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* Aura Assistant Overlay */}
+        {showAssistant && (
+          <div className="absolute inset-0 z-50 bg-black/40 backdrop-blur-sm flex flex-col justify-end items-center pb-24 animate-in fade-in duration-300" onClick={() => setShowAssistant(false)}>
+            <div className="text-white/90 text-xl font-light mb-12 tracking-wide text-center px-6 animate-in slide-in-from-bottom-4">
+              {assistantText}
+            </div>
+            <div className="relative w-32 h-32 flex items-center justify-center">
+              <div className="absolute inset-0 bg-gradient-to-r from-aura-primary to-cyan-500 rounded-full blur-xl animate-pulse-glow opacity-70"></div>
+              <div className="absolute inset-2 bg-gradient-to-tr from-fuchsia-500 to-aura-primary rounded-full blur-md animate-[spin_3s_linear_infinite]"></div>
+              <div className="absolute inset-4 bg-black rounded-full"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-10 h-10 bg-white/20 rounded-full backdrop-blur-md border border-white/30"></div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Control Center Overlay */}
         {showControlCenter && (
@@ -1247,7 +1368,7 @@ export default function App() {
             {/* Dynamic App Grid */}
             <div className="grid grid-cols-4 gap-y-6 gap-x-4 content-start flex-1 overflow-y-auto hide-scrollbar pb-20">
               {/* Weather Widget */}
-              <div className="col-span-2 row-span-2 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 backdrop-blur-xl rounded-[28px] border border-white/10 p-4 flex flex-col justify-between cursor-pointer active:scale-95 transition-transform shadow-lg" onClick={() => { vibrate(); setOpenedApp('Atmosphere'); }}>
+              <div className="col-span-2 row-span-2 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 backdrop-blur-xl rounded-[28px] border border-white/10 p-4 flex flex-col justify-between cursor-pointer active:scale-95 transition-transform shadow-lg" onClick={() => launchApp('Atmosphere')}>
                 <div className="flex justify-between items-start">
                   <div className="text-white/90 text-sm font-medium tracking-wide">Neo Tokyo</div>
                   <CloudLightning size={20} className="text-cyan-400 drop-shadow-[0_0_8px_#22d3ee]" />
@@ -1258,16 +1379,16 @@ export default function App() {
                 </div>
               </div>
               {installedApps.map(appId => (
-                <AppIcon key={appId} id={appId} onClick={() => setOpenedApp(appId)} />
+                <AppIcon key={appId} id={appId} onClick={() => launchApp(appId)} />
               ))}
             </div>
 
             {/* Floating Dock */}
             <div className="absolute bottom-8 left-0 right-0 mx-auto w-[90%] h-[76px] bg-aura-card/40 backdrop-blur-2xl rounded-[24px] border border-white/10 flex justify-around items-center px-2 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
-              <DockIcon icon={Phone} gradient="from-emerald-400 to-cyan-400" onClick={() => setOpenedApp('Phone')} />
-              <DockIcon icon={Globe} gradient="from-blue-500 to-indigo-500" onClick={() => setOpenedApp('Net')} />
-              <DockIcon icon={Mail} gradient="from-rose-400 to-orange-500" onClick={() => setOpenedApp('Mail')} />
-              <DockIcon icon={ShoppingBag} gradient="from-fuchsia-500 to-purple-600" onClick={() => setOpenedApp('Vault')} />
+              <DockIcon icon={Phone} gradient="from-emerald-400 to-cyan-400" onClick={() => launchApp('Phone')} />
+              <DockIcon icon={Globe} gradient="from-blue-500 to-indigo-500" onClick={() => launchApp('Net')} />
+              <DockIcon icon={Mail} gradient="from-rose-400 to-orange-500" onClick={() => launchApp('Mail')} />
+              <DockIcon icon={ShoppingBag} gradient="from-fuchsia-500 to-purple-600" onClick={() => launchApp('Vault')} />
             </div>
           </div>
         )}
@@ -1275,7 +1396,8 @@ export default function App() {
         {/* Glowing Navigation Pill */}
         <div 
           className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[100px] h-[4px] rounded-full z-50 cursor-pointer transition-all duration-300 bg-white/50 hover:bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-          onClick={handleHomeSwipe}
+          onPointerDown={onHomePointerDown}
+          onPointerUp={onHomePointerUp}
         ></div>
       </div>
     </div>
