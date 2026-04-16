@@ -1274,7 +1274,7 @@ export default function App() {
           <div className="absolute inset-0 z-[100] bg-white flex flex-col items-center justify-center animate-in fade-out duration-1000 delay-1500 fill-mode-forwards">
             <div className="w-32 h-32 flex items-center justify-center animate-pulse-glow">
             </div>
-            <h1 className="text-white mt-6 text-2xl font-light tracking-[0.3em] uppercase">Pokers</h1>
+            <h1 className="text-black mt-6 text-2xl font-light tracking-[0.3em] uppercase">Poker</h1>
             <div className="w-32 h-1 bg-black/10 rounded-full mt-8 overflow-hidden">
               <div className="h-full bg-black rounded-full animate-[scan_1.5s_ease-in-out_forwards]"></div>
             </div>
