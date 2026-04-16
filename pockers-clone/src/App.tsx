@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Battery, Wifi, Signal, Lock, Camera, Calculator, 
   CloudLightning, Settings, MessageSquare, Phone, Mail, Globe, 
-  Map, Clock, ChevronRight, Fingerprint, Zap, Bell, Search, 
+  Map, Clock, ChevronRight, Fingerprint, Zap, Search, 
   User, Activity, Bluetooth, Moon, Sun, Volume2, Maximize, 
   Power, Shield, ShoppingBag, Spade, Music, FileText, Download, 
   Image as ImageIcon, Play, Pause, SkipForward, SkipBack, RefreshCw,
   Calendar as CalendarIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
-import bootLogo from './assets/boot-logo.png';
+
 
 // --- Helpers ---
 const vibrate = (pattern: number | number[] = 50) => {
@@ -1271,13 +1271,12 @@ export default function App() {
 
         {/* Boot Sequence */}
         {isBooting && (
-          <div className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center animate-in fade-out duration-1000 delay-1500 fill-mode-forwards">
+          <div className="absolute inset-0 z-[100] bg-white flex flex-col items-center justify-center animate-in fade-out duration-1000 delay-1500 fill-mode-forwards">
             <div className="w-32 h-32 flex items-center justify-center animate-pulse-glow">
-              <img src={bootLogo} alt="Pokers Boot Logo" className="w-full h-full object-contain drop-shadow-[0_0_30px_rgba(139,92,246,0.6)]" />
             </div>
             <h1 className="text-white mt-6 text-2xl font-light tracking-[0.3em] uppercase">Pokers</h1>
-            <div className="w-32 h-1 bg-white/10 rounded-full mt-8 overflow-hidden">
-              <div className="h-full bg-white rounded-full animate-[scan_1.5s_ease-in-out_forwards]"></div>
+            <div className="w-32 h-1 bg-black/10 rounded-full mt-8 overflow-hidden">
+              <div className="h-full bg-black rounded-full animate-[scan_1.5s_ease-in-out_forwards]"></div>
             </div>
           </div>
         )}
