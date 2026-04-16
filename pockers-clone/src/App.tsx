@@ -1186,7 +1186,7 @@ export default function App() {
 
         {/* Boot Sequence */}
         {isBooting && (
-          <div className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center animate-in fade-out duration-1000 delay-1500 fill-mode-forwards">
+          <div className="absolute inset-0 z-[100] bg-white flex flex-col items-center justify-center animate-in fade-out duration-1000 delay-1500 fill-mode-forwards">
             <div className="w-32 h-32 flex items-center justify-center animate-pulse-glow">
             </div>
             <h1 className="text-black mt-6 text-2xl font-light tracking-[0.3em] uppercase">Poker</h1>
