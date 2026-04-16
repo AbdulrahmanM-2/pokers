@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Battery, Wifi, Signal, Lock, Camera, Calculator, 
   CloudLightning, Settings, MessageSquare, Phone, Mail, Globe, 
-  Map, Clock, ChevronRight, Fingerprint, Zap, Search, 
+  Map, Clock, ChevronRight, Fingerprint, Zap, Bell, Search, 
   User, Activity, Bluetooth, Moon, Sun, Volume2, Maximize, 
   Power, Shield, ShoppingBag, Spade, Music, FileText, Download, 
   Image as ImageIcon, Play, Pause, SkipForward, SkipBack, RefreshCw,
   Calendar as CalendarIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
-
+import bootLogo from './assets/boot-logo.png';
 
 // --- Helpers ---
 const vibrate = (pattern: number | number[] = 50) => {
@@ -151,10 +151,19 @@ export default function App() {
 
   // Phone State
   const [dialerInput, setDialerInput] = useState('');
+  const [phoneTab, setPhoneTab] = useState('keypad');
 
   // Mail & Gallery State
   const [activeEmail, setActiveEmail] = useState<number | null>(null);
   const [activePhoto, setActivePhoto] = useState<number | null>(null);
+  const [mailTab, setMailTab] = useState('inbox');
+
+  // Vault State
+  const [vaultSearch, setVaultSearch] = useState('');
+
+  // Control Center State
+  const [brightness, setBrightness] = useState(75);
+  const [volume, setVolume] = useState(50);
 
   // Comms State
   const [activeChat, setActiveChat] = useState<number | null>(null);
@@ -561,16 +570,22 @@ export default function App() {
                   <Shield size={20} className="text-emerald-400 drop-shadow-[0_0_8px_#34d399]" />
                 </div>
                 <div className="px-6 mb-4 flex space-x-6 border-b border-white/10 pb-3 text-sm tracking-wide">
-                  <span className="text-rose-400 font-medium relative">
+                  <span onClick={() => setMailTab('inbox')} className={`cursor-pointer transition-colors relative ${mailTab === 'inbox' ? 'text-rose-400 font-medium' : 'text-white/40 hover:text-white/70'}`}>
                     Inbox
-                    <div className="absolute -bottom-[13px] left-0 w-full h-[2px] bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]"></div>
+                    {mailTab === 'inbox' && <div className="absolute -bottom-[13px] left-0 w-full h-[2px] bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]"></div>}
                   </span>
-                  <span className="text-white/40 hover:text-white/70 cursor-pointer transition-colors">Sent</span>
-                  <span className="text-white/40 hover:text-white/70 cursor-pointer transition-colors">Encrypted</span>
+                  <span onClick={() => setMailTab('sent')} className={`cursor-pointer transition-colors relative ${mailTab === 'sent' ? 'text-rose-400 font-medium' : 'text-white/40 hover:text-white/70'}`}>
+                    Sent
+                    {mailTab === 'sent' && <div className="absolute -bottom-[13px] left-0 w-full h-[2px] bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]"></div>}
+                  </span>
+                  <span onClick={() => setMailTab('encrypted')} className={`cursor-pointer transition-colors relative ${mailTab === 'encrypted' ? 'text-rose-400 font-medium' : 'text-white/40 hover:text-white/70'}`}>
+                    Encrypted
+                    {mailTab === 'encrypted' && <div className="absolute -bottom-[13px] left-0 w-full h-[2px] bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]"></div>}
+                  </span>
                 </div>
                 <div className="flex-1 overflow-y-auto hide-scrollbar px-4 space-y-3 pb-10">
-                  {emails.map((email, i) => (
-                    <div key={i} onClick={() => setActiveEmail(i)} className="bg-aura-card rounded-2xl p-4 border border-white/5 cursor-pointer active:scale-[0.98] transition-transform relative overflow-hidden">
+                  {mailTab === 'inbox' ? emails.map((email, i) => (
+                    <div key={i} onClick={() => setActiveEmail(i)} className="bg-aura-card rounded-2xl p-4 border border-white/5 cursor-pointer active:scale-[0.98] transition-transform relative overflow-hidden animate-in fade-in">
                       {email.unread && <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.8)]"></div>}
                       <div className="flex justify-between items-baseline mb-1">
                         <h3 className={`font-medium tracking-wide ${email.unread ? 'text-white' : 'text-white/70'}`}>{email.sender}</h3>
@@ -579,7 +594,9 @@ export default function App() {
                       <h4 className={`text-sm mb-1 tracking-wide ${email.unread ? 'text-rose-400' : 'text-white/60'}`}>{email.subject}</h4>
                       <p className="text-xs text-white/40 truncate">{email.preview}</p>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="text-center text-white/40 mt-10 text-sm animate-in fade-in">No {mailTab} messages.</div>
+                  )}
                 </div>
               </>
             )}
@@ -595,11 +612,17 @@ export default function App() {
             <div className="px-6 mb-4">
               <div className="bg-white/5 rounded-xl h-10 flex items-center px-4 border border-white/10">
                 <Search size={16} className="text-white/40 mr-3" />
-                <span className="text-white/40 text-sm">Search secure apps...</span>
+                <input 
+                  type="text" 
+                  value={vaultSearch}
+                  onChange={(e) => setVaultSearch(e.target.value)}
+                  placeholder="Search secure apps..."
+                  className="bg-transparent border-none outline-none text-white/90 text-sm flex-1 placeholder-white/40"
+                />
               </div>
             </div>
             <div className="px-6 space-y-6 pb-10">
-              {STORE_APPS.map(appId => {
+              {STORE_APPS.filter(appId => APP_REGISTRY[appId].name.toLowerCase().includes(vaultSearch.toLowerCase())).map(appId => {
                 const app = APP_REGISTRY[appId];
                 const isInstalled = installedApps.includes(appId);
                 const isDownloading = downloading === appId;
@@ -1073,35 +1096,64 @@ export default function App() {
               <h1 className="text-2xl font-light tracking-widest uppercase text-emerald-400">Phone</h1>
               <Shield size={16} className="text-emerald-400 drop-shadow-[0_0_8px_#34d399]" />
             </div>
-            <div className="flex-1 flex flex-col items-center justify-center w-full px-8">
-              <div className="text-4xl font-light tracking-widest h-12 mb-8 text-emerald-400">{dialerInput || ' '}</div>
-              <div className="grid grid-cols-3 gap-6 w-full max-w-[260px]">
-                {['1','2','3','4','5','6','7','8','9','*','0','#'].map(num => (
-                  <div key={num} onClick={() => { vibrate(10); setDialerInput(prev => prev.length < 15 ? prev + num : prev); }} className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-light cursor-pointer active:bg-white/20 active:scale-90 transition-all">
-                    {num}
+            <div className="flex-1 flex flex-col w-full overflow-hidden">
+              {phoneTab === 'keypad' && (
+                <div className="flex-1 flex flex-col items-center justify-center w-full px-8 animate-in fade-in">
+                  <div className="text-4xl font-light tracking-widest h-12 mb-8 text-emerald-400">{dialerInput || ' '}</div>
+                  <div className="grid grid-cols-3 gap-6 w-full max-w-[260px]">
+                    {['1','2','3','4','5','6','7','8','9','*','0','#'].map(num => (
+                      <div key={num} onClick={() => { vibrate(10); setDialerInput(prev => prev.length < 15 ? prev + num : prev); }} className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-light cursor-pointer active:bg-white/20 active:scale-90 transition-all">
+                        {num}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="mt-10 flex space-x-6">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center cursor-pointer active:scale-90 transition-all shadow-[0_0_20px_rgba(16,185,129,0.4)]" onClick={() => vibrate([30, 50, 30])}>
-                  <Phone size={28} className="text-emerald-400 fill-current" />
+                  <div className="mt-10 flex space-x-6">
+                    <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center cursor-pointer active:scale-90 transition-all shadow-[0_0_20px_rgba(16,185,129,0.4)]" onClick={() => vibrate([30, 50, 30])}>
+                      <Phone size={28} className="text-emerald-400 fill-current" />
+                    </div>
+                    <div onClick={() => { vibrate(10); setDialerInput(prev => prev.slice(0, -1)); }} className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center cursor-pointer active:scale-90 transition-all">
+                      <ChevronRight size={28} className="text-rose-400 rotate-180" />
+                    </div>
+                  </div>
                 </div>
-                <div onClick={() => { vibrate(10); setDialerInput(prev => prev.slice(0, -1)); }} className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center cursor-pointer active:scale-90 transition-all">
-                  <ChevronRight size={28} className="text-rose-400 rotate-180" />
+              )}
+              {phoneTab === 'recents' && (
+                <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 animate-in fade-in">
+                  <h2 className="text-white font-medium mb-4">Recent Calls</h2>
+                  {['Nexus Team', 'Cipher', 'Unknown Number'].map((name, i) => (
+                    <div key={i} className="flex justify-between items-center border-b border-white/10 pb-3">
+                      <div>
+                        <div className={`font-medium ${i === 2 ? 'text-rose-400' : 'text-white'}`}>{name}</div>
+                        <div className="text-xs text-white/40 mt-1">Mobile</div>
+                      </div>
+                      <div className="text-xs text-white/40">{i === 0 ? '10:42 AM' : i === 1 ? 'Yesterday' : 'Friday'}</div>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              )}
+              {phoneTab === 'contacts' && (
+                <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 animate-in fade-in">
+                  <h2 className="text-white font-medium mb-4">Contacts</h2>
+                  {['Admin_01', 'Cipher', 'Echo', 'Nexus Team', 'Vanguard'].map((name, i) => (
+                    <div key={i} className="flex items-center space-x-4 border-b border-white/10 pb-3">
+                      <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-bold">{name[0]}</div>
+                      <div className="font-medium text-white">{name}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="h-16 border-t border-white/10 flex justify-around items-center px-4 pb-2">
-              <div className="flex flex-col items-center text-white/40 hover:text-emerald-400 cursor-pointer transition-colors">
+            <div className="h-16 border-t border-white/10 flex justify-around items-center px-4 pb-2 shrink-0">
+              <div onClick={() => setPhoneTab('recents')} className={`flex flex-col items-center cursor-pointer transition-colors ${phoneTab === 'recents' ? 'text-emerald-400' : 'text-white/40 hover:text-emerald-400'}`}>
                 <Clock size={20} />
                 <span className="text-[10px] mt-1">Recents</span>
               </div>
-              <div className="flex flex-col items-center text-white/40 hover:text-emerald-400 cursor-pointer transition-colors">
+              <div onClick={() => setPhoneTab('contacts')} className={`flex flex-col items-center cursor-pointer transition-colors ${phoneTab === 'contacts' ? 'text-emerald-400' : 'text-white/40 hover:text-emerald-400'}`}>
                 <User size={20} />
                 <span className="text-[10px] mt-1">Contacts</span>
               </div>
-              <div className="flex flex-col items-center text-emerald-400 cursor-pointer">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+              <div onClick={() => setPhoneTab('keypad')} className={`flex flex-col items-center cursor-pointer ${phoneTab === 'keypad' ? 'text-emerald-400' : 'text-white/40 hover:text-emerald-400'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${phoneTab === 'keypad' ? 'bg-emerald-500/20' : ''}`}>
                   <Phone size={20} />
                 </div>
                 <span className="text-[10px] mt-1">Keypad</span>
@@ -1219,12 +1271,13 @@ export default function App() {
 
         {/* Boot Sequence */}
         {isBooting && (
-          <div className="absolute inset-0 z-[100] bg-white flex flex-col items-center justify-center animate-in fade-out duration-1000 delay-1500 fill-mode-forwards">
+          <div className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center animate-in fade-out duration-1000 delay-1500 fill-mode-forwards">
             <div className="w-32 h-32 flex items-center justify-center animate-pulse-glow">
+              <img src={bootLogo} alt="Pokers Boot Logo" className="w-full h-full object-contain drop-shadow-[0_0_30px_rgba(139,92,246,0.6)]" />
             </div>
-            <h1 className="text-black mt-6 text-2xl font-light tracking-[0.3em] uppercase">Poker</h1>
+            <h1 className="text-white mt-6 text-2xl font-light tracking-[0.3em] uppercase">Pokers</h1>
             <div className="w-32 h-1 bg-white/10 rounded-full mt-8 overflow-hidden">
-              <div className="h-full bg-black rounded-full animate-[scan_1.5s_ease-in-out_forwards]"></div>
+              <div className="h-full bg-white rounded-full animate-[scan_1.5s_ease-in-out_forwards]"></div>
             </div>
           </div>
         )}
@@ -1330,13 +1383,25 @@ export default function App() {
               </div>
             </div>
             <div className="space-y-4">
-              <div className="h-16 bg-white/10 rounded-3xl flex items-center px-4 border border-white/10 relative overflow-hidden">
-                <Sun size={20} className="text-white/50 z-10" />
-                <div className="absolute left-0 top-0 bottom-0 w-3/4 bg-white/20"></div>
+              <div 
+                className="h-16 bg-white/10 rounded-3xl flex items-center px-4 border border-white/10 relative overflow-hidden cursor-pointer"
+                onPointerDown={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setBrightness(Math.max(5, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)));
+                }}
+              >
+                <Sun size={20} className="text-white/50 z-10 pointer-events-none" />
+                <div className="absolute left-0 top-0 bottom-0 bg-white/20 transition-all duration-150" style={{ width: `${brightness}%` }}></div>
               </div>
-              <div className="h-16 bg-white/10 rounded-3xl flex items-center px-4 border border-white/10 relative overflow-hidden">
-                <Volume2 size={20} className="text-white/50 z-10" />
-                <div className="absolute left-0 top-0 bottom-0 w-1/2 bg-white/20"></div>
+              <div 
+                className="h-16 bg-white/10 rounded-3xl flex items-center px-4 border border-white/10 relative overflow-hidden cursor-pointer"
+                onPointerDown={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setVolume(Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)));
+                }}
+              >
+                <Volume2 size={20} className="text-white/50 z-10 pointer-events-none" />
+                <div className="absolute left-0 top-0 bottom-0 bg-white/20 transition-all duration-150" style={{ width: `${volume}%` }}></div>
               </div>
             </div>
           </div>
