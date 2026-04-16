@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Battery, Wifi, Signal, Lock, Camera, Calculator, 
   CloudLightning, Settings, MessageSquare, Phone, Mail, Globe, 
-  Map, Clock, ChevronRight, Fingerprint, Zap, Bell, Search, 
+  Map, Clock, ChevronRight, Fingerprint, Zap, Search, 
   User, Activity, Bluetooth, Moon, Sun, Volume2, Maximize, 
   Power, Shield, ShoppingBag, Spade, Music, FileText, Download, 
   Image as ImageIcon, Play, Pause, SkipForward, SkipBack, RefreshCw,
