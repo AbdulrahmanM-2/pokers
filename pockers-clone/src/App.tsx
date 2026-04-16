@@ -9,7 +9,7 @@ import {
   Calendar as CalendarIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
-import bootLogo from './assets/boot-logo.png';
+
 
 // --- Helpers ---
 const vibrate = (pattern: number | number[] = 50) => {
@@ -1182,15 +1182,14 @@ export default function App() {
         className="relative w-full h-full bg-cover bg-center overflow-hidden transition-all duration-700"
         style={{ backgroundImage: `url(${wallpaper})` }}
       >
-        <div className="absolute inset-0 bg-black/40"></div>
+        <div className="absolute inset-0 bg-white/40"></div>
 
         {/* Boot Sequence */}
         {isBooting && (
           <div className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center animate-in fade-out duration-1000 delay-1500 fill-mode-forwards">
             <div className="w-32 h-32 flex items-center justify-center animate-pulse-glow">
-              <img src={bootLogo} alt="Pokers Boot Logo" className="w-full h-full object-contain drop-shadow-[0_0_30px_rgba(139,92,246,0.6)]" />
             </div>
-            <h1 className="text-white mt-6 text-2xl font-light tracking-[0.3em] uppercase">Pokers</h1>
+            <h1 className="text-black mt-6 text-2xl font-light tracking-[0.3em] uppercase">Poker</h1>
             <div className="w-32 h-1 bg-white/10 rounded-full mt-8 overflow-hidden">
               <div className="h-full bg-white rounded-full animate-[scan_1.5s_ease-in-out_forwards]"></div>
             </div>
